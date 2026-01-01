@@ -2879,6 +2879,398 @@
         }
     }
 
+    // ==================== VIP MISSIONS ====================
+    function getMissions() {
+        const missions = [
+            { id: 'daily_slots_10', name: 'Daily: Play 10 Slots', type: 'slots', target: 10, reward: 500, vipReward: 1000, progress: 0, claimed: false },
+            { id: 'daily_win_500', name: 'Daily: Win 500 Coins', type: 'win', target: 500, reward: 300, vipReward: 600, progress: 0, claimed: false },
+            { id: 'daily_bingo_5', name: 'Daily: Play 5 Bingo', type: 'bingo', target: 5, reward: 400, vipReward: 800, progress: 0, claimed: false },
+            { id: 'weekly_wager_5k', name: 'Weekly: Wager $5,000', type: 'wager', target: 5000, reward: 2000, vipReward: 4000, progress: 0, claimed: false, weekly: true },
+            { id: 'vip_referral_1', name: 'VIP: Refer 1 Friend', type: 'referral', target: 1, reward: 0, vipReward: 1500, progress: 0, claimed: false, vipOnly: true }
+        ];
+
+        if (!gameState.missions) {
+            gameState.missions = missions;
+            gameState.missionLastReset = Date.now();
+        }
+
+        // Reset daily missions every 24h
+        const now = Date.now();
+        const dayMs = 24 * 60 * 60 * 1000;
+        if (now - gameState.missionLastReset > dayMs) {
+            gameState.missions.forEach(m => {
+                if (!m.weekly) {
+                    m.progress = 0;
+                    m.claimed = false;
+                }
+            });
+            gameState.missionLastReset = now;
+            saveState();
+        }
+
+        return gameState.missions;
+    }
+
+    function updateMissionProgress(type, amount) {
+        const missions = getMissions();
+        missions.forEach(m => {
+            if (m.type === type && !m.claimed) {
+                m.progress += amount;
+                if (m.progress >= m.target) {
+                    m.progress = m.target;
+                }
+            }
+        });
+        saveState();
+    }
+
+    function claimMissionReward(missionId) {
+        const missions = getMissions();
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission || mission.claimed || mission.progress < mission.target) {
+            showNotification('Cannot claim this reward yet.', 'error');
+            return;
+        }
+
+        const isVip = isVipClubActive();
+        const reward = isVip ? mission.vipReward : mission.reward;
+        
+        if (reward === 0) {
+            showNotification('Mission completed! Reward will be applied automatically.', 'info');
+            mission.claimed = true;
+            saveState();
+            renderMissions();
+            return;
+        }
+
+        updateBalance(reward);
+        mission.claimed = true;
+        showNotification(`Mission completed! +${reward} coins${isVip ? ' (VIP Bonus)' : ''}`, 'success');
+        createConfetti();
+        saveState();
+        renderMissions();
+    }
+
+    function renderMissions() {
+        const missions = getMissions();
+        const container = document.getElementById('missionsList');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        missions.forEach(m => {
+            if (m.vipOnly && !isVipClubActive()) return;
+
+            const div = document.createElement('div');
+            div.className = 'bg-black/30 border border-gray-700/50 rounded-xl p-4 mb-3';
+            
+            const progress = Math.min(100, (m.progress / m.target) * 100);
+            const canClaim = m.progress >= m.target && !m.claimed;
+            
+            div.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <div class="font-bold">${m.name}</div>
+                    <div class="text-sm text-gray-400">${m.progress}/${m.target}</div>
+                </div>
+                <div class="progress-bar mb-2">
+                    <div class="progress-fill" style="width: ${progress}%"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-emerald-300">Reward: ${m.reward} coins${isVipClubActive() && m.vipReward ? ` (VIP: ${m.vipReward})` : ''}</div>
+                    <button onclick="claimMissionReward('${m.id}')" 
+                        class="px-4 py-2 rounded-lg text-sm ${canClaim ? 'btn-gold' : 'bg-gray-700 cursor-not-allowed'}" 
+                        ${!canClaim ? 'disabled' : ''}>
+                        ${m.claimed ? '✓ Claimed' : canClaim ? 'Claim' : 'In Progress'}
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // ==================== TOURNAMENTS ====================
+    function getTournaments() {
+        if (!gameState.tournaments) {
+            gameState.tournaments = [
+                {
+                    id: 'weekend_slots',
+                    name: 'Weekend Slots Showdown',
+                    entryFee: 50,
+                    prizePool: 5000,
+                    endTime: Date.now() + (3 * 24 * 60 * 60 * 1000), // 3 days
+                    active: true,
+                    leaderboard: []
+                }
+            ];
+        }
+        return gameState.tournaments;
+    }
+
+    function joinTournament(tournamentId) {
+        const tournaments = getTournaments();
+        const tournament = tournaments.find(t => t.id === tournamentId);
+        
+        if (!tournament || !tournament.active) {
+            showNotification('Tournament not available.', 'error');
+            return;
+        }
+
+        if (Date.now() > tournament.endTime) {
+            showNotification('Tournament has ended.', 'error');
+            return;
+        }
+
+        // Check if already joined
+        const existing = tournament.leaderboard.find(l => l.username === (gameState.currentUser?.username || 'Guest'));
+        if (existing) {
+            showNotification('You already joined this tournament!', 'info');
+            return;
+        }
+
+        if (gameState.balance < tournament.entryFee) {
+            showNotification('Not enough coins for entry fee.', 'error');
+            return;
+        }
+
+        updateBalance(-tournament.entryFee);
+        addWager(tournament.entryFee);
+
+        tournament.leaderboard.push({
+            username: gameState.currentUser?.username || 'Guest',
+            score: 0,
+            joinedAt: Date.now()
+        });
+
+        showNotification(`Joined ${tournament.name}! Good luck!`, 'success');
+        saveState();
+        renderTournaments();
+    }
+
+    function updateTournamentScore(winnings) {
+        const tournaments = getTournaments();
+        const activeTournaments = tournaments.filter(t => t.active && Date.now() < t.endTime);
+        
+        activeTournaments.forEach(tournament => {
+            const player = tournament.leaderboard.find(l => l.username === (gameState.currentUser?.username || 'Guest'));
+            if (player) {
+                player.score += winnings;
+            }
+        });
+
+        saveState();
+    }
+
+    function renderTournaments() {
+        const tournaments = getTournaments();
+        const container = document.getElementById('tournamentsList');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        tournaments.forEach(t => {
+            const isActive = t.active && Date.now() < t.endTime;
+            const timeLeft = Math.max(0, t.endTime - Date.now());
+            const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+            const div = document.createElement('div');
+            div.className = 'bg-black/30 border border-gray-700/50 rounded-xl p-4 mb-4';
+
+            // Sort leaderboard
+            const sorted = [...t.leaderboard].sort((a, b) => b.score - a.score);
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <div class="font-bold text-lg">${t.name}</div>
+                        <div class="text-sm text-gray-400">
+                            Entry: ${t.entryFee} coins | Prize: ${t.prizePool} coins
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm ${isActive ? 'text-emerald-400' : 'text-gray-500'}">
+                            ${isActive ? `${hoursLeft}h ${minutesLeft}m left` : 'Ended'}
+                        </div>
+                        ${isActive ? `<button onclick="joinTournament('${t.id}')" class="btn-gold px-4 py-2 rounded-lg text-sm mt-1">Join</button>` : ''}
+                    </div>
+                </div>
+                
+                ${sorted.length > 0 ? `
+                    <div class="mt-3">
+                        <div class="text-xs uppercase text-gray-400 mb-2">Leaderboard</div>
+                        <div class="space-y-1">
+                            ${sorted.slice(0, 5).map((entry, idx) => `
+                                <div class="flex justify-between text-sm ${entry.username === (gameState.currentUser?.username || 'Guest') ? 'text-yellow-400 font-bold' : 'text-gray-300'}">
+                                    <span>${idx + 1}. ${entry.username}</span>
+                                    <span>${entry.score.toFixed(0)} pts</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '<div class="text-sm text-gray-400 mt-2">No players yet. Be the first to join!</div>'}
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function endTournaments() {
+        const tournaments = getTournaments();
+        const now = Date.now();
+        
+        tournaments.forEach(t => {
+            if (t.active && now > t.endTime) {
+                t.active = false;
+                
+                // Award prizes to top 3
+                const sorted = [...t.leaderboard].sort((a, b) => b.score - a.score);
+                const prizes = [t.prizePool * 0.5, t.prizePool * 0.3, t.prizePool * 0.2]; // 50%, 30%, 20%
+                
+                sorted.slice(0, 3).forEach((player, idx) => {
+                    // In a real app, you'd credit their account server-side
+                    // For demo, we just show a notification
+                    if (player.username === (gameState.currentUser?.username || 'Guest')) {
+                        showNotification(`Tournament ended! You placed #${idx + 1}! Prize will be credited.`, 'info');
+                    }
+                });
+            }
+        });
+
+        saveState();
+    }
+
+    // ==================== REFERRAL SYSTEM ====================
+    function getReferralCode() {
+        if (!gameState.currentUser) return null;
+        return gameState.currentUser.username;
+    }
+
+    function getReferralStats() {
+        if (!gameState.referralStats) {
+            gameState.referralStats = {
+                referred: [], // { username, timestamp }
+                rewards: 0
+            };
+        }
+        return gameState.referralStats;
+    }
+
+    function applyReferral(referredUsername) {
+        const code = getReferralCode();
+        if (!code || !referredUsername) return;
+
+        if (!gameState.referralHistory) {
+            gameState.referralHistory = [];
+        }
+
+        // Check if this referral already exists
+        if (gameState.referralHistory.find(r => r.referred === referredUsername)) {
+            return;
+        }
+
+        // Record the referral
+        gameState.referralHistory.push({
+            referrer: code,
+            referred: referredUsername,
+            timestamp: Date.now()
+        });
+
+        // Credit referrer (500 coins + 50 VIP XP)
+        const stats = getReferralStats();
+        stats.referred.push({ username: referredUsername, timestamp: Date.now() });
+        stats.rewards += 500;
+        
+        // Apply immediately if this is the current user
+        if (gameState.currentUser && gameState.currentUser.username === code) {
+            updateBalance(500);
+            gameState.vipXP += 50;
+            updateVipUI();
+            showNotification(`Referral success! +500 coins +50 VIP XP`, 'success');
+            createConfetti();
+        }
+
+        saveState();
+    }
+
+    function generateReferralLink() {
+        const code = getReferralCode();
+        if (!code) return null;
+        
+        // In a real app, this would be your domain: https://yourapp.com?ref=CODE
+        return `${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(code)}`;
+    }
+
+    function shareReferral() {
+        const link = generateReferralLink();
+        if (!link) {
+            showNotification('Please login to generate a referral link.', 'error');
+            return;
+        }
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(link).then(() => {
+            showNotification('Referral link copied to clipboard!', 'success');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = link;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showNotification('Referral link copied to clipboard!', 'success');
+        });
+    }
+
+    function checkForReferral() {
+        // Check URL params for referral code
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        
+        if (refCode && gameState.currentUser && gameState.currentUser.username !== refCode) {
+            // Apply referral reward to the referrer (simulated server-side)
+            // In a real app, this would be done on the backend
+            if (!gameState.appliedReferral) {
+                applyReferral(gameState.currentUser.username);
+                gameState.appliedReferral = true;
+                saveState();
+            }
+        }
+    }
+
+    // ==================== GAME HOOKS FOR MISSIONS & TOURNAMENTS ====================
+    // Override existing game functions to track progress
+
+    const originalSpinSlots = spinSlots;
+    spinSlots = async function() {
+        const result = await originalSpinSlots.call(this);
+        updateMissionProgress('slots', 1);
+        return result;
+    };
+
+    const originalPlayBingo = playBingo;
+    playBingo = function() {
+        const result = originalPlayBingo.call(this);
+        updateMissionProgress('bingo', 1);
+        return result;
+    };
+
+    // Track winnings for missions and tournaments
+    const originalUpdateBalance = updateBalance;
+    updateBalance = function(amount) {
+        if (amount > 0) {
+            updateMissionProgress('win', amount);
+            updateTournamentScore(amount);
+        }
+        originalUpdateBalance.call(this, amount);
+    };
+
+    // Track wagers
+    const originalAddWager = addWager;
+    addWager = function(amount) {
+        updateMissionProgress('wager', amount);
+        originalAddWager.call(this, amount);
+    };
+
     // ==================== INIT ====================
     function init() {
         document.getElementById('balance').textContent = gameState.balance.toFixed(2);
@@ -2895,6 +3287,9 @@
         updateAuthUI();
         refreshVipClubUI();
         updateDailyBonusUI();
+        
+        // Check for referral on init
+        checkForReferral();
 
         // Format card number input
         document.getElementById('cardNumber').addEventListener('input', function(e) {
@@ -2913,6 +3308,9 @@
         // Tick: coin regen
         setInterval(coinRegenTick, 1500);
         coinRegenTick();
+
+        // Check for tournament end
+        setInterval(endTournaments, 60000); // Check every minute
 
         console.log('🎰 Royal Fortune Casino initialized!');
     }
