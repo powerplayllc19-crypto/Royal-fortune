@@ -34,7 +34,20 @@
         * { font-family: 'Roboto', sans-serif; }
         h1, h2, h3, .logo { font-family: 'Playfair Display', serif; }
 
-        body {
+        body 
+    // ==================== SUPABASE CONFIG ====================
+const SUPABASE_URL = ': http://:db.ympmemzazjimghbefhvf.supabase.co'; // 
+const SUPABASE_ANON_KEY = 'sb_publishable_ZOSgwnTjCHhheKbfHPu8Xw_4io0UUya'; // Replace with your anon key
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ==================== GAME STATE ====================
+let gameState = {
+    // ... existing state properties ...
+    // Add Supabase session
+    session: null,
+    user: null
+};{
             background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f0f23 100%);
             min-height: 100vh;
         }
