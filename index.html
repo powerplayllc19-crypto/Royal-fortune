@@ -4,24 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Royal Fortune Casino - Premium Gaming Experience</title>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    
-    <!-- Stripe JS -->
     <script src="https://js.stripe.com/v3/"></script>
-    
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    
     <style>
-        /* Your existing styles remain the same */
-        /* ... (keep all existing CSS) ... */
-    </style>
-</head>
         :root {
             --gold: #d4af37;
             --gold-light: #f4e4a6;
@@ -34,20 +21,7 @@
         * { font-family: 'Roboto', sans-serif; }
         h1, h2, h3, .logo { font-family: 'Playfair Display', serif; }
 
-        body 
-    // ==================== SUPABASE CONFIG ====================
-const SUPABASE_URL = ': http://:db.ympmemzazjimghbefhvf.supabase.co'; // 
-const SUPABASE_ANON_KEY = 'sb_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcG1lbXphemppbWdoYmVmaHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyMjIzMzUsImV4cCI6MjA4Mjc5ODMzNX0.EOUNNGxDiGPiip93WLWchZ8jtaii2tzb6qQjFJI2wHE'; // Replace with your anon key
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ==================== GAME STATE ====================
-let gameState = {
-    // ... existing state properties ...
-    // Add Supabase session
-    session: null,
-    user: null
-};{
+        body {
             background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f0f23 100%);
             min-height: 100vh;
         }
@@ -467,6 +441,9 @@ let gameState = {
                 <div class="hidden md:flex items-center space-x-6">
                     <a class="nav-link cursor-pointer" onclick="showSection('lobby')">🎰 Lobby</a>
                     <a class="nav-link cursor-pointer" onclick="showSection('store')">🛒 Store</a>
+                    <a class="nav-link cursor-pointer" onclick="showSection('missions')">✅ Missions</a>
+                    <a class="nav-link cursor-pointer" onclick="showSection('achievements')">🏅 Achievements</a>
+                    <a class="nav-link cursor-pointer" onclick="showSection('tournaments')">🏆 Tournaments</a>
                     <a class="nav-link cursor-pointer" onclick="showSection('slots')">🎡 Slots</a>
                     <a class="nav-link cursor-pointer" onclick="showSection('blackjack')">🃏 Blackjack</a>
                     <a class="nav-link cursor-pointer" onclick="showSection('roulette')">🎯 Roulette</a>
@@ -501,17 +478,23 @@ let gameState = {
     </div>
     <div class="p-4 space-y-3" id="authContent">
         <input id="authUsername" type="text" class="w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm" placeholder="Username" />
-        <input id="authEmail" type="email" class="w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm" placeholder="Email (optional)" />
-        <button class="btn-gold w-full py-2 rounded-lg text-sm" onclick="loginOrRegister()">Continue</button>
+        <input id="authEmail" type="email" class="w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm" placeholder="Email" />
+        <input id="authPassword" type="password" class="w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm" placeholder="Password" />
+        <button class="btn-gold w-full py-2 rounded-lg text-sm" onclick="loginOrRegister()">Sign up / Sign in</button>
 
         <div class="pt-2 grid grid-cols-2 gap-2">
             <button class="bg-purple-700 hover:bg-purple-600 py-2 rounded-lg text-xs" onclick="showSection('store'); setStoreTab('vip'); toggleAuthPanel();">VIP Club</button>
             <button class="bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-xs" onclick="openModal('support'); toggleAuthPanel();">Support</button>
         </div>
 
+        <div class="pt-2 flex items-center justify-between">
+            <button class="bg-blue-600 hover:bg-blue-700 py-2 px-3 rounded-lg text-xs" onclick="sendMagicLink()">Send Magic Link</button>
+            <button class="bg-gray-800 hover:bg-gray-700 py-2 px-3 rounded-lg text-xs" onclick="forgotPassword()">Forgot?</button>
+        </div>
+
         <button id="logoutBtn" class="w-full py-2 rounded-lg text-sm bg-red-600 hover:bg-red-700 hidden" onclick="logout()">Logout</button>
 
-        <p class="text-[11px] text-gray-500">We use local storage only. Add your own backend & auth provider (Firebase / Supabase / Cognito) for real accounts.</p>
+        <p class="text-[11px] text-gray-500">This app uses Supabase Auth + Postgres. On GitHub Pages, the Supabase anon key is public by design. Protect data with RLS policies.</p>
     </div>
     <div class="p-3 border-t border-[#d4af37]/20 text-[11px] text-gray-500 space-y-1">
         <div class="flex justify-between"><span>Total wagered:</span><span id="authTotalWagered">$0.00</span></div>
@@ -524,8 +507,9 @@ let gameState = {
     <div class="flex justify-around">
         <button class="p-3 bg-purple-900/80 rounded-full" onclick="showSection('lobby')">🏠</button>
         <button class="p-3 bg-purple-900/80 rounded-full" onclick="showSection('store')">🛒</button>
+        <button class="p-3 bg-purple-900/80 rounded-full" onclick="showSection('missions')">✅</button>
         <button class="p-3 bg-purple-900/80 rounded-full" onclick="showSection('bingo')">🎱</button>
-        <button class="p-3 bg-purple-900/80 rounded-full" onclick="openVipLounge()">👑</button>
+        <button class="p-3 bg-purple-900/80 rounded-full" onclick="showSection('tournaments')">🏆</button>
     </div>
 </div>
 
@@ -673,6 +657,62 @@ let gameState = {
 
             <!-- Coins -->
             <div id="storeCoins" class="">
+                <!-- Low balance prompt -->
+                <div id="lowBalancePrompt" class="hidden max-w-5xl mx-auto mb-6 bg-red-900/30 border border-red-500/30 rounded-2xl p-5">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div>
+                            <div class="text-xs uppercase tracking-wider text-red-200/80">Heads up</div>
+                            <div class="text-lg font-semibold">You’re running low on coins</div>
+                            <div class="text-sm text-red-200/70">Grab a quick pack or claim daily bonus to keep playing.</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn-gold px-5 py-2 rounded-xl" onclick="startCheckout('pack','starter')">Buy Starter</button>
+                            <button class="bg-purple-700 hover:bg-purple-600 px-5 py-2 rounded-xl" onclick="showSection('lobby')">Claim Daily</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Featured / Limited offers -->
+                <div class="max-w-5xl mx-auto mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="price-card rounded-2xl p-5 border border-[#d4af37]/35 relative overflow-hidden">
+                        <div class="absolute -top-3 left-4 px-3 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/40">HOT DEAL</div>
+                        <div class="text-xl font-bold">Daily Booster</div>
+                        <div class="text-sm text-gray-300 mt-1">Limited bonus pack (refreshes daily)</div>
+                        <div class="mt-5 flex items-end justify-between">
+                            <div>
+                                <div class="text-3xl font-bold text-emerald-300">25,000</div>
+                                <div class="text-xs text-gray-400">+ 5,000 bonus</div>
+                            </div>
+                            <button class="btn-gold px-5 py-2 rounded-xl" onclick="startCheckout('pack','daily')">$7.99</button>
+                        </div>
+                    </div>
+
+                    <div class="price-card rounded-2xl p-5 border border-amber-300/40 relative overflow-hidden">
+                        <div class="absolute -top-3 left-4 px-3 py-1 text-xs rounded-full bg-[#d4af37]/25 text-[#f4e4a6] border border-[#d4af37]/40">BEST VALUE</div>
+                        <div class="text-xl font-bold">Mega Bundle</div>
+                        <div class="text-sm text-gray-300 mt-1">Biggest bonus for grinders</div>
+                        <div class="mt-5 flex items-end justify-between">
+                            <div>
+                                <div class="text-3xl font-bold text-emerald-300">150,000</div>
+                                <div class="text-xs text-gray-400">+ 50,000 bonus</div>
+                            </div>
+                            <button class="btn-gold px-5 py-2 rounded-xl" onclick="startCheckout('pack','mega')">$29.99</button>
+                        </div>
+                    </div>
+
+                    <div class="price-card rounded-2xl p-5 border border-purple-400/30 relative overflow-hidden">
+                        <div class="absolute -top-3 left-4 px-3 py-1 text-xs rounded-full bg-purple-500/20 text-purple-200 border border-purple-500/40">VIP UPSELL</div>
+                        <div class="text-xl font-bold">VIP Club</div>
+                        <div class="text-sm text-gray-300 mt-1">Ad-free + 2x daily bonus + faster regen</div>
+                        <div class="mt-5 flex items-end justify-between">
+                            <div>
+                                <div class="text-3xl font-bold gold-gradient">$9.99</div>
+                                <div class="text-xs text-gray-400">per month</div>
+                            </div>
+                            <button class="bg-purple-700 hover:bg-purple-600 px-5 py-2 rounded-xl font-semibold" onclick="setStoreTab('vip')">See VIP</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="price-card rounded-2xl p-6 transition">
                         <div class="flex items-center justify-between">
@@ -842,6 +882,128 @@ let gameState = {
                             <button class="btn-gold px-5 py-2 rounded-xl" onclick="startCheckout('item','autodauber')">Buy</button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Missions Section -->
+    <section id="missions" class="section hidden">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold gold-gradient">✅ Missions</h2>
+                <p class="text-gray-300">Complete missions to earn coins, VIP XP, and boosters. VIP Club gets bigger rewards.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-black/30 border border-gray-700/50 rounded-2xl p-6 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold gold-gradient">Your Missions</h3>
+                        <button class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-xs" onclick="renderMissions()">Refresh</button>
+                    </div>
+                    <div class="mt-4" id="missionsList"></div>
+                </div>
+
+                <div class="bg-black/30 border border-gray-700/50 rounded-2xl p-6">
+                    <h3 class="text-xl font-bold gold-gradient">Boosters</h3>
+                    <div class="mt-3 space-y-3 text-sm text-gray-300">
+                        <div class="bg-purple-900/40 border border-purple-500/30 rounded-xl p-4">
+                            <div class="font-semibold">🎯 Mission Multiplier</div>
+                            <div class="text-gray-400 text-[12px]">VIP Club doubles many mission rewards automatically.</div>
+                        </div>
+                        <div class="bg-purple-900/40 border border-purple-500/30 rounded-xl p-4">
+                            <div class="font-semibold">🎁 Daily bonus synergy</div>
+                            <div class="text-gray-400 text-[12px]">Claim daily bonus, then complete a mission loop to maximize retention and value.</div>
+                        </div>
+                        <button class="btn-gold w-full py-3 rounded-xl" onclick="showSection('store'); setStoreTab('specials');">Shop Boosters</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-gray-400 text-sm">
+                <div class="bg-black/20 border border-gray-700/40 rounded-xl p-4">
+                    <div class="font-semibold text-white">Server-side migration plan (Supabase)</div>
+                    <div class="text-[12px] mt-1">These missions currently run client-side for GitHub Pages. When ready, store progress in Supabase tables and enforce rewards using RLS + RPC/Edge Functions.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Achievements Section -->
+    <section id="achievements" class="section hidden">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold gold-gradient">🏅 Achievements</h2>
+                <p class="text-gray-300">Long-term goals to keep players engaged. Designed to migrate to Supabase easily.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-black/30 border border-gray-700/50 rounded-2xl p-6 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold gold-gradient">Trophies</h3>
+                        <button class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-xs" onclick="renderAchievements()">Refresh</button>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" id="achievementsList"></div>
+                </div>
+
+                <div class="bg-black/30 border border-gray-700/50 rounded-2xl p-6">
+                    <h3 class="text-xl font-bold gold-gradient">Rewards</h3>
+                    <div class="mt-3 space-y-3 text-sm text-gray-300">
+                        <div class="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-4">
+                            <div class="font-semibold">💰 Coin bonuses</div>
+                            <div class="text-gray-400 text-[12px]">Claim coins for major milestones. VIP Club helps you reach them faster with regen and perks.</div>
+                        </div>
+                        <div class="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4">
+                            <div class="font-semibold">⭐ Cosmetic progression</div>
+                            <div class="text-gray-400 text-[12px]">Award titles/badges (client-side now, server-side later) to increase identity + retention.</div>
+                        </div>
+                        <button class="bg-purple-700 hover:bg-purple-600 w-full py-3 rounded-xl font-semibold" onclick="showSection('store'); setStoreTab('vip');">Unlock VIP Rewards</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tournaments Section -->
+    <section id="tournaments" class="section hidden">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold gold-gradient">🏆 Tournaments</h2>
+                <p class="text-gray-300">Compete for prize pools. Entry fees create sinks, leaderboards boost engagement, and VIP perks drive upgrades.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-black/30 border border-gray-700/50 rounded-2xl p-6 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold gold-gradient">Live Events</h3>
+                        <button class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-xs" onclick="renderTournaments()">Refresh</button>
+                    </div>
+                    <div class="mt-4" id="tournamentsList"></div>
+                </div>
+
+                <div class="bg-black/30 border border-gray-700/50 rounded-2xl p-6">
+                    <h3 class="text-xl font-bold gold-gradient">Grow Faster</h3>
+                    <div class="mt-3 space-y-3 text-sm text-gray-300">
+                        <div class="bg-purple-900/40 border border-purple-500/30 rounded-xl p-4">
+                            <div class="font-semibold">🔗 Referral Link</div>
+                            <div class="text-gray-400 text-[12px]">Invite friends. You earn rewards when they join (and later, when they purchase).</div>
+                            <button class="btn-gold w-full mt-3 py-2 rounded-xl" onclick="shareReferral()">Copy Referral Link</button>
+                            <div class="text-[11px] text-gray-500 mt-2">Tip: promote tournament weekends for the fastest viral lift.</div>
+                        </div>
+
+                        <div class="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-4">
+                            <div class="font-semibold">👑 VIP Edge</div>
+                            <div class="text-gray-400 text-[12px]">VIP gets ad-free mode + faster regen so they can enter more events.</div>
+                            <button class="bg-purple-700 hover:bg-purple-600 w-full mt-3 py-2 rounded-xl font-semibold" onclick="showSection('store'); setStoreTab('vip');">Go VIP</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-gray-400 text-sm">
+                <div class="bg-black/20 border border-gray-700/40 rounded-xl p-4">
+                    <div class="font-semibold text-white">Server-side migration plan (Supabase)</div>
+                    <div class="text-[12px] mt-1">Move tournament joins, scoring, and payouts into Supabase with RLS + an Edge Function for secure scoring and prize distribution.</div>
                 </div>
             </div>
         </div>
@@ -1373,7 +1535,7 @@ let gameState = {
 
             <button class="btn-gold w-full py-4 rounded-xl text-xl mt-2" onclick="processCheckout()">Pay Now</button>
 
-            <p class="text-center text-gray-500 text-xs mt-2">🔒 Secure payment powered by Stripe (wire your Payment Intent backend). Demo mode simulates payment.</p>
+            <p class="text-center text-gray-500 text-xs mt-2">🔒 Stripe-ready checkout. On GitHub Pages you must use a backend (or Supabase Edge Function) for PaymentIntents/Checkout + webhooks. Demo mode simulates payment until wired.</p>
         </div>
     </div>
 </div>
@@ -1418,6 +1580,31 @@ let gameState = {
 </div>
 
 <script>
+    // ==================== SUPABASE (GitHub Pages compatible) ====================
+    // Replace these two values with your project settings:
+    // Supabase Dashboard → Project Settings → API
+    // ==================== SUPABASE CONFIG (GitHub Pages friendly) ====================
+    // 1) Supabase Dashboard → Project Settings → API
+    // 2) Paste values below (anon key is public by design; protect data with RLS)
+    const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
+    const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+
+    // Optional: enable/disable remote persistence quickly
+    const USE_SUPABASE = (
+        typeof SUPABASE_URL === 'string' &&
+        typeof SUPABASE_ANON_KEY === 'string' &&
+        SUPABASE_URL.length > 10 &&
+        SUPABASE_ANON_KEY.length > 10 &&
+        !SUPABASE_URL.includes('PASTE_')
+    );
+
+    let supabaseClient = null;
+    if (USE_SUPABASE && window.supabase?.createClient) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+    }
+
     // ==================== GAME STATE ====================
     let gameState = {
         balance: 1000.00,
@@ -1458,7 +1645,14 @@ let gameState = {
         },
 
         nmSlotBet: 5,
-        vipSlotBet: 50
+        vipSlotBet: 50,
+
+        // Supabase session/user
+        session: null,
+        userProfile: null,
+
+        // Referral attribution (captured before signup)
+        pendingRef: null
     };
 
     const savedState = localStorage.getItem('casinoState');
@@ -1477,7 +1671,9 @@ let gameState = {
     // ==================== STORE CONFIG ====================
     const coinPacks = {
         starter: { name: 'Starter Pack', price: 2.99, coins: 10000, bonusCoins: 0, desc: 'Perfect for new players.' },
+        daily: { name: 'Daily Booster', price: 7.99, coins: 25000, bonusCoins: 5000, desc: 'Limited-time daily refresh pack.' },
         royal: { name: 'Royal Bundle', price: 19.99, coins: 60000, bonusCoins: 10000, desc: 'Best value bundle with bonus coins.' },
+        mega: { name: 'Mega Bundle', price: 29.99, coins: 150000, bonusCoins: 50000, desc: 'Big bonus pack for grinders.' },
         whale: { name: 'Whale Chest', price: 49.99, coins: 200000, bonusCoins: 60000, desc: 'High roller pack for serious play.' }
     };
 
@@ -1489,11 +1685,52 @@ let gameState = {
     // ==================== UTILITY ====================
     function saveState() { localStorage.setItem('casinoState', JSON.stringify(gameState)); }
 
+    // Debounced remote sync to Supabase
+    let syncTimer = null;
+    function scheduleProfileSync() {
+        if (!supabaseClient || !gameState.session?.user) return;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => { syncProfileToSupabase().catch(console.warn); }, 800);
+    }
+
+    async function syncProfileToSupabase() {
+        if (!supabaseClient || !gameState.session?.user) return;
+        const uid = gameState.session.user.id;
+
+        const payload = {
+            id: uid,
+            username: gameState.currentUser?.username || null,
+            email: gameState.currentUser?.email || gameState.session.user.email || null,
+            coins: Math.floor(gameState.balance),
+            vip_level: gameState.vipLevel || 0,
+            vip_xp: Math.floor(gameState.vipXP || 0),
+            total_wagered: Math.floor(gameState.totalWagered || 0),
+            vip_active: !!isVipClubActive(),
+            vip_expires_at: gameState.vipClub?.expiresAt ? new Date(gameState.vipClub.expiresAt).toISOString() : null,
+            ad_free: !!(gameState.vipClub?.adFree),
+            last_claim: gameState.lastClaim || null,
+            daily_streak: gameState.dailyStreak || 1,
+            free_spins: gameState.freeSpins || 0,
+            updated_at: new Date().toISOString()
+        };
+
+        // Upsert into a "profiles" table (recommended). If you used "users" instead, rename it below.
+        const { error } = await supabaseClient
+            .from('profiles')
+            .upsert(payload, { onConflict: 'id' });
+
+        if (error) {
+            console.warn('Supabase profile sync failed:', error.message);
+        }
+    }
+
     function updateBalance(amount) {
-        gameState.balance += amount;
+        gameState.balance = Number(gameState.balance || 0) + Number(amount || 0);
         if (gameState.balance < 0) gameState.balance = 0;
-        document.getElementById('balance').textContent = gameState.balance.toFixed(2);
+        const balEl = document.getElementById('balance');
+        if (balEl) balEl.textContent = gameState.balance.toFixed(2);
         saveState();
+        scheduleProfileSync();
     }
 
     function addWager(amount) {
@@ -1501,6 +1738,7 @@ let gameState = {
         gameState.vipXP += amount;
         updateVipUI();
         saveState();
+        scheduleProfileSync();
     }
 
     function formatDateTime(ts) {
@@ -1648,14 +1886,16 @@ let gameState = {
         const btn = document.getElementById('loginToggleBtn');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        if (gameState.currentUser) {
-            label.textContent = gameState.currentUser.username;
-            btn.textContent = 'Account';
-            logoutBtn.classList.remove('hidden');
+        const username = gameState.currentUser?.username || (gameState.session?.user?.email ? gameState.session.user.email.split('@')[0] : null);
+
+        if (username) {
+            if (label) label.textContent = username;
+            if (btn) btn.textContent = 'Account';
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
         } else {
-            label.textContent = 'Guest';
-            btn.textContent = 'Sign in';
-            logoutBtn.classList.add('hidden');
+            if (label) label.textContent = 'Guest';
+            if (btn) btn.textContent = 'Sign in';
+            if (logoutBtn) logoutBtn.classList.add('hidden');
         }
     }
 
@@ -1663,22 +1903,96 @@ let gameState = {
         document.getElementById('authPanel').classList.toggle('hidden');
     }
 
-    function loginOrRegister() {
+    async function loginOrRegister() {
         const username = document.getElementById('authUsername').value.trim();
         const email = document.getElementById('authEmail').value.trim();
-        if (!username) {
-            showNotification('Please enter a username', 'error');
-            return;
-        }
-        gameState.currentUser = { username, email: email || null };
+        const password = document.getElementById('authPassword').value;
+
+        if (!username) { showNotification('Please enter a username', 'error'); return; }
+        if (!email) { showNotification('Please enter an email', 'error'); return; }
+        if (!password || password.length < 6) { showNotification('Password must be at least 6 characters', 'error'); return; }
+
+        // Always store locally for instant UX
+        gameState.currentUser = { username, email };
         saveState();
         updateAuthUI();
-        refreshVipClubUI();
-        toggleAuthPanel();
-        showNotification(`Welcome, ${username}! Progress is saved on this device.`, 'success');
+
+        if (!supabaseClient) {
+            refreshVipClubUI();
+            toggleAuthPanel();
+            showNotification(`Welcome, ${username}! (Local mode)`, 'success');
+            return;
+        }
+
+        try {
+            // Try sign-in first
+            let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            // If sign-in fails, attempt sign-up
+            if (error) {
+                const signUp = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { username } }
+                });
+                data = signUp.data;
+                error = signUp.error;
+            }
+
+            if (error) throw error;
+
+            const session = data.session;
+            if (session) {
+                gameState.session = session;
+                await ensureProfileExists(session.user.id, username, email);
+                await loadProfileFromSupabase(session.user.id);
+                await applyReferralIfEligible();
+            } else {
+                showNotification('Check your email to confirm your account (if confirmations are enabled).', 'info');
+            }
+
+            toggleAuthPanel();
+            showNotification(`Signed in as ${username}`, 'success');
+        } catch (err) {
+            console.error(err);
+            showNotification(err?.message || 'Auth failed', 'error');
+        }
     }
 
-    function logout() {
+    async function sendMagicLink() {
+        const email = document.getElementById('authEmail').value.trim();
+        if (!supabaseClient) { showNotification('Supabase is not configured.', 'error'); return; }
+        if (!email) { showNotification('Enter email first.', 'error'); return; }
+
+        // IMPORTANT for GitHub Pages:
+        // In Supabase Dashboard → Auth → URL Configuration:
+        // set Site URL to your GitHub Pages URL.
+        const { error } = await supabaseClient.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: window.location.href }
+        });
+        if (error) showNotification(error.message, 'error');
+        else showNotification('Magic link sent. Check your email.', 'success');
+    }
+
+    async function forgotPassword() {
+        const email = document.getElementById('authEmail').value.trim();
+        if (!supabaseClient) { showNotification('Supabase is not configured.', 'error'); return; }
+        if (!email) { showNotification('Enter email first.', 'error'); return; }
+
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.href
+        });
+        if (error) showNotification(error.message, 'error');
+        else showNotification('Password reset email sent.', 'success');
+    }
+
+    async function logout() {
+        if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+        }
+        gameState.session = null;
+        gameState.userProfile = null;
         gameState.currentUser = null;
         saveState();
         updateAuthUI();
@@ -1741,12 +2055,21 @@ let gameState = {
     }
 
     // ==================== CHECKOUT FLOW (Stripe-ready; demo simulated) ====================
+    // ==================== STRIPE (client) ====================
+    // Paste your Stripe publishable key below. For production, use pk_live_...
     let stripe = null;
+    const STRIPE_PUBLISHABLE_KEY = 'pk_test_PASTE_YOUR_STRIPE_PUBLISHABLE_KEY_HERE';
     try {
-        stripe = Stripe('pk_test_YOUR_KEY_HERE');
+        if (typeof Stripe === 'function' && STRIPE_PUBLISHABLE_KEY && !STRIPE_PUBLISHABLE_KEY.includes('PASTE_')) {
+            stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+        }
     } catch (e) {
         console.warn('Stripe not initialized. Add your publishable key to enable real payments.');
     }
+
+    // GitHub Pages note:
+    // - Real Stripe payments require a backend (or Supabase Edge Function) to create PaymentIntents/Checkout Sessions.
+    // - This UI keeps a demo fallback when Stripe/backend is not wired.
 
     function startCheckout(type, id) {
         gameState.checkout = { type, id };
@@ -1799,9 +2122,23 @@ let gameState = {
             return;
         }
 
-        // This is where you would call your backend /create-payment-intent and stripe.confirmCardPayment().
-        // Demo: simulate payment success.
+        // Production wiring (recommended):
+        // 1) Create a Supabase Edge Function (or any backend) that creates a Stripe Checkout Session or PaymentIntent.
+        // 2) Call it from here with: type/id/user_id
+        // 3) Redirect to Stripe Checkout OR confirmCardPayment.
+        // 4) Use Stripe webhook to credit coins / activate VIP server-side.
+
+        // GitHub Pages: without a backend/edge function, we keep demo-mode simulation.
+        const backendReady = false; // set true once you wire an Edge Function endpoint
+
         showNotification('Processing payment...', 'info');
+
+        if (backendReady && stripe) {
+            // Example (Stripe Checkout) pseudo-flow:
+            // const { data } = await supabaseClient.functions.invoke('create-checkout', { body: { type, id } });
+            // await stripe.redirectToCheckout({ sessionId: data.sessionId });
+            showNotification('Stripe backend not wired yet. Falling back to demo mode.', 'info');
+        }
 
         setTimeout(() => {
             const { type, id } = gameState.checkout || {};
@@ -1847,6 +2184,9 @@ let gameState = {
 
         // VIP welcome gift
         updateBalance(5000);
+
+        // Achievement hook
+        updateAchievementProgress('vip', 1);
 
         showNotification('VIP Club activated! +5,000 coins welcome gift.', 'success');
         createConfetti();
@@ -2906,6 +3246,77 @@ let gameState = {
         }
     }
 
+    // ==================== ACHIEVEMENTS ====================
+    function getAchievements() {
+        if (!gameState.achievements) {
+            gameState.achievements = [
+                { id: 'first_spin', name: 'First Spin', desc: 'Spin any slot 1 time.', type: 'slots', target: 1, progress: 0, reward: 100, claimed: false },
+                { id: 'slots_100', name: 'Slot Grinder', desc: 'Spin slots 100 times.', type: 'slots', target: 100, progress: 0, reward: 1000, claimed: false },
+                { id: 'wager_10k', name: 'High Stakes', desc: 'Wager a total of $10,000.', type: 'wager', target: 10000, progress: 0, reward: 2500, claimed: false },
+                { id: 'win_5k', name: 'Big Winner', desc: 'Win a total of 5,000 coins.', type: 'win', target: 5000, progress: 0, reward: 1500, claimed: false },
+                { id: 'vip_join', name: 'VIP Member', desc: 'Activate VIP Club.', type: 'vip', target: 1, progress: 0, reward: 2000, claimed: false }
+            ];
+        }
+        return gameState.achievements;
+    }
+
+    function updateAchievementProgress(type, amount) {
+        const achievements = getAchievements();
+        achievements.forEach(a => {
+            if (a.claimed) return;
+            if (a.type !== type) return;
+            a.progress = Math.min(a.target, (a.progress || 0) + amount);
+        });
+        saveState();
+        renderAchievements();
+    }
+
+    function claimAchievement(id) {
+        const achievements = getAchievements();
+        const a = achievements.find(x => x.id === id);
+        if (!a || a.claimed || (a.progress || 0) < a.target) {
+            showNotification('Achievement not ready to claim.', 'error');
+            return;
+        }
+        a.claimed = true;
+        updateBalance(a.reward);
+        showNotification(`Achievement unlocked! +${a.reward.toLocaleString()} coins`, 'success');
+        createConfetti();
+        saveState();
+        renderAchievements();
+    }
+
+    function renderAchievements() {
+        const container = document.getElementById('achievementsList');
+        if (!container) return;
+        const achievements = getAchievements();
+        container.innerHTML = '';
+
+        achievements.forEach(a => {
+            const progress = Math.min(100, ((a.progress || 0) / a.target) * 100);
+            const canClaim = (a.progress || 0) >= a.target && !a.claimed;
+            const div = document.createElement('div');
+            div.className = 'bg-black/30 border border-gray-700/50 rounded-2xl p-4';
+            div.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="font-bold">${a.name}</div>
+                        <div class="text-[12px] text-gray-400">${a.desc}</div>
+                    </div>
+                    <div class="text-[12px] text-gray-400">${Math.min(a.target, a.progress || 0)}/${a.target}</div>
+                </div>
+                <div class="progress-bar mt-3"><div class="progress-fill" style="width:${progress}%"></div></div>
+                <div class="mt-3 flex items-center justify-between">
+                    <div class="text-sm text-emerald-300">Reward: ${a.reward.toLocaleString()} coins</div>
+                    <button class="px-4 py-2 rounded-lg text-sm ${a.claimed ? 'bg-gray-800 text-gray-400 cursor-not-allowed' : canClaim ? 'btn-gold' : 'bg-gray-700 text-gray-300 cursor-not-allowed'}" ${(!canClaim || a.claimed) ? 'disabled' : ''} onclick="claimAchievement('${a.id}')">
+                        ${a.claimed ? '✓ Claimed' : canClaim ? 'Claim' : 'Locked'}
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
     // ==================== VIP MISSIONS ====================
     function getMissions() {
         const missions = [
@@ -3249,18 +3660,89 @@ let gameState = {
     }
 
     function checkForReferral() {
-        // Check URL params for referral code
         const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get('ref');
-        
-        if (refCode && gameState.currentUser && gameState.currentUser.username !== refCode) {
-            // Apply referral reward to the referrer (simulated server-side)
-            // In a real app, this would be done on the backend
-            if (!gameState.appliedReferral) {
-                applyReferral(gameState.currentUser.username);
-                gameState.appliedReferral = true;
+        const ref = urlParams.get('ref');
+        if (!ref) return;
+
+        // Store pending referral until account exists
+        if (!gameState.pendingRef) {
+            gameState.pendingRef = ref;
+            saveState();
+        }
+    }
+
+    async function applyReferralIfEligible() {
+        if (!supabaseClient || !gameState.session?.user) return;
+        const ref = gameState.pendingRef;
+        if (!ref) return;
+
+        // Don't self-refer: compare with username if known
+        const myUsername = gameState.currentUser?.username;
+        if (myUsername && myUsername.toLowerCase() === String(ref).toLowerCase()) {
+            gameState.pendingRef = null;
+            saveState();
+            return;
+        }
+
+        try {
+            // This expects:
+            // - profiles table: id, username
+            // - referrals table: id, referrer_id, referred_id, created_at
+            const { data: referrer, error: refErr } = await supabaseClient
+                .from('profiles')
+                .select('id, username')
+                .eq('username', ref)
+                .maybeSingle();
+
+            if (refErr) throw refErr;
+            if (!referrer?.id) return;
+
+            // Ensure we haven't already used a referral
+            const { data: existing } = await supabaseClient
+                .from('referrals')
+                .select('id')
+                .eq('referred_id', gameState.session.user.id)
+                .maybeSingle();
+
+            if (existing?.id) {
+                gameState.pendingRef = null;
                 saveState();
+                return;
             }
+
+            // Insert referral
+            const { error: insErr } = await supabaseClient
+                .from('referrals')
+                .insert({ referrer_id: referrer.id, referred_id: gameState.session.user.id });
+            if (insErr) throw insErr;
+
+            // Reward both sides (client-side update + sync). In production, do this in a Supabase Edge Function.
+            // Referrer: +500 coins, +50 VIP XP
+            // Referred: +1000 coins
+            updateMissionProgress('referral', 1);
+            // VIP-only mission will now be claimable if VIP is active
+            renderMissions();
+            await supabaseClient.rpc('apply_referral_rewards', {
+                p_referrer_id: referrer.id,
+                p_referred_id: gameState.session.user.id
+            }).catch(() => null);
+
+            // If you don't have the RPC, we still grant locally (and sync).
+            updateBalance(1000);
+            gameState.vipXP += 0;
+            updateVipUI();
+            scheduleProfileSync();
+
+            // Also increment local referral mission progress (client side)
+            updateMissionProgress('referral', 1);
+            renderMissions();
+
+            showNotification(`Referral applied! +1000 coins. Referrer: ${referrer.username}`, 'success');
+        } catch (e) {
+            console.warn('Referral apply failed:', e?.message || e);
+        } finally {
+            gameState.pendingRef = null;
+            saveState();
         }
     }
 
@@ -3271,6 +3753,7 @@ let gameState = {
     spinSlots = async function() {
         const result = await originalSpinSlots.call(this);
         updateMissionProgress('slots', 1);
+        updateAchievementProgress('slots', 1);
         return result;
     };
 
@@ -3281,26 +3764,167 @@ let gameState = {
         return result;
     };
 
+    // Hook NM and VIP slots into missions/achievements too
+    const originalSpinNmSlots = spinNmSlots;
+    spinNmSlots = async function() {
+        const result = await originalSpinNmSlots.call(this);
+        updateMissionProgress('slots', 1);
+        updateAchievementProgress('slots', 1);
+        return result;
+    };
+
+    const originalSpinVipSlots = spinVipSlots;
+    spinVipSlots = async function() {
+        const result = await originalSpinVipSlots.call(this);
+        updateMissionProgress('slots', 1);
+        updateAchievementProgress('slots', 1);
+        return result;
+    };
+
     // Track winnings for missions and tournaments
     const originalUpdateBalance = updateBalance;
     updateBalance = function(amount) {
         if (amount > 0) {
             updateMissionProgress('win', amount);
             updateTournamentScore(amount);
+            updateAchievementProgress('win', amount);
         }
         originalUpdateBalance.call(this, amount);
+        updateStorePrompts();
     };
 
     // Track wagers
     const originalAddWager = addWager;
     addWager = function(amount) {
         updateMissionProgress('wager', amount);
+        updateAchievementProgress('wager', amount);
         originalAddWager.call(this, amount);
     };
 
-    // ==================== INIT ====================
-    function init() {
+    async function ensureProfileExists(uid, username, email) {
+        if (!supabaseClient) return;
+        // Try read
+        const { data: existing } = await supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('id', uid)
+            .maybeSingle();
+
+        if (existing?.id) return;
+
+        // Create base profile
+        const { error } = await supabaseClient
+            .from('profiles')
+            .insert({
+                id: uid,
+                username,
+                email,
+                coins: Math.floor(gameState.balance),
+                vip_level: 0,
+                vip_xp: 0,
+                total_wagered: 0,
+                vip_active: false,
+                vip_expires_at: null,
+                ad_free: false,
+                daily_streak: 1,
+                last_claim: null,
+                free_spins: 3
+            });
+
+        if (error) {
+            console.warn('Profile create failed:', error.message);
+        }
+    }
+
+    async function loadProfileFromSupabase(uid) {
+        if (!supabaseClient) return;
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', uid)
+            .single();
+        if (error) {
+            console.warn('Profile load failed:', error.message);
+            return;
+        }
+
+        gameState.userProfile = data;
+
+        // Apply remote state into local state
+        if (typeof data.coins === 'number') gameState.balance = data.coins;
+        if (typeof data.vip_xp === 'number') gameState.vipXP = data.vip_xp;
+        if (typeof data.total_wagered === 'number') gameState.totalWagered = data.total_wagered;
+        if (typeof data.daily_streak === 'number') gameState.dailyStreak = data.daily_streak;
+        if (data.last_claim) gameState.lastClaim = data.last_claim;
+        if (typeof data.free_spins === 'number') gameState.freeSpins = data.free_spins;
+
+        if (data.username) {
+            gameState.currentUser = { username: data.username, email: data.email || null };
+        }
+
+        // VIP
+        if (data.vip_active && data.vip_expires_at) {
+            const exp = new Date(data.vip_expires_at).getTime();
+            gameState.vipClub.active = Date.now() < exp;
+            gameState.vipClub.expiresAt = exp;
+            gameState.vipClub.adFree = !!data.ad_free;
+        }
+
+        // Refresh UI
         document.getElementById('balance').textContent = gameState.balance.toFixed(2);
+        updateVipUI();
+        updateAuthUI();
+        refreshVipClubUI();
+        updateDailyBonusUI();
+        saveState();
+    }
+
+    async function bootstrapSupabaseSession() {
+        if (!supabaseClient) return;
+
+        // Handle magic links / OAuth redirects
+        try {
+            await supabaseClient.auth.exchangeCodeForSession(window.location.href);
+        } catch (_) {
+            // no-op
+        }
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        gameState.session = session;
+
+        // Subscribe to auth changes
+        supabaseClient.auth.onAuthStateChange(async (_event, newSession) => {
+            gameState.session = newSession;
+            saveState();
+            if (newSession?.user?.id) {
+                // Load profile on sign-in
+                const uname = document.getElementById('authUsername')?.value?.trim() || gameState.currentUser?.username || 'Player';
+                const em = newSession.user.email || gameState.currentUser?.email || null;
+                await ensureProfileExists(newSession.user.id, uname, em);
+                await loadProfileFromSupabase(newSession.user.id);
+                await applyReferralIfEligible();
+            } else {
+                updateAuthUI();
+                refreshVipClubUI();
+            }
+        });
+
+        if (session?.user?.id) {
+            await loadProfileFromSupabase(session.user.id);
+            await applyReferralIfEligible();
+        }
+    }
+
+    function updateStorePrompts() {
+        const prompt = document.getElementById('lowBalancePrompt');
+        if (!prompt) return;
+        const low = Number(gameState.balance || 0) < 150;
+        prompt.classList.toggle('hidden', !low);
+    }
+
+    // ==================== INIT ====================
+    async function init() {
+        document.getElementById('balance').textContent = Number(gameState.balance || 0).toFixed(2);
 
         createFortuneWheel();
         newBingoCard();
@@ -3314,23 +3938,36 @@ let gameState = {
         updateAuthUI();
         refreshVipClubUI();
         updateDailyBonusUI();
-        
-        // Check for referral on init
+
+        // Capture referral attribution early
         checkForReferral();
 
+        // Bootstrap Supabase session (magic links, persisted sessions)
+        try {
+            await bootstrapSupabaseSession();
+        } catch (e) {
+            console.warn('Supabase bootstrap skipped:', e?.message || e);
+        }
+
         // Format card number input
-        document.getElementById('cardNumber').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
-            let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formatted;
-        });
+        const cardNumber = document.getElementById('cardNumber');
+        if (cardNumber) {
+            cardNumber.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+                let formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                e.target.value = formatted;
+            });
+        }
 
         // Format expiry input
-        document.getElementById('cardExpiry').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) value = value.slice(0, 2) + '/' + value.slice(2);
-            e.target.value = value;
-        });
+        const cardExpiry = document.getElementById('cardExpiry');
+        if (cardExpiry) {
+            cardExpiry.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 2) value = value.slice(0, 2) + '/' + value.slice(2);
+                e.target.value = value;
+            });
+        }
 
         // Tick: coin regen
         setInterval(coinRegenTick, 1500);
@@ -3338,6 +3975,12 @@ let gameState = {
 
         // Check for tournament end
         setInterval(endTournaments, 60000); // Check every minute
+
+        // Render meta systems
+        renderMissions();
+        renderAchievements();
+        renderTournaments();
+        updateStorePrompts();
 
         console.log('🎰 Royal Fortune Casino initialized!');
     }
