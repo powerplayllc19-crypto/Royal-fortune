@@ -1033,8 +1033,6 @@
 
                 <div class="flex justify-center space-x-4 mb-6">
                     <button class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition" onclick="changeSlotBet(-5)">-</button>
-                const SUPABASE_URL ='https://ympmemzazjimghbefhvf.supabase.co';
-                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcG1lbXphemppbWdoYmVmaHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyMjIzMzUsImV4cCI6MjA4Mjc5ODMzNX0.EOUNNGxDiGPiip93WLWchZ8jtaii2tzb6qQjFJI2wHE
                     <button class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition" onclick="changeSlotBet(-1)">-</button>
                     <button class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition" onclick="changeSlotBet(1)">+</button>
                     <button class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition" onclick="changeSlotBet(5)">+</button>
@@ -1068,7 +1066,6 @@
             <p class="text-center text-gray-300 mb-6">Spin through the high desert with Zia symbols, roadrunners, cacti, and sunsets over the Sandias.</p>
 
             <div class="slot-machine p-8 mx-auto max-w-lg" style="background: radial-gradient(circle at top, #facc15 0%, #7c2d12 45%, #1b1024 100%);">
-            const STRIPE_PUBLISHABLE_KEY = pk_test_51SmLkWAjI9V6KtxTLwExvTSEUuZA0Jj4mmZ2PtGdWRWwbXTwJcfKdSHDehh5DlQ5JuCxHFHaGWKcmIGXg73jabTh00Cp3sBdNt
                 <!-- NM Flag Banner with more accurate Zia-style symbol -->
                 <div class="flex items-center justify-center mb-4 space-x-3">
                     <div class="w-14 h-9 rounded border-2 border-amber-300 flex items-center justify-center relative overflow-hidden" style="background:#facc15;">
@@ -2057,11 +2054,21 @@
         window.scrollTo(0, 0);
     }
 
-    // ==================== CHECKOUT FLOW (Stripe-ready; demo simulated) ====================
-    // ==================== STRIPE (client) ====================
+    // ==================== STRIPE CHECKOUT & PAYMENTS ====================
     // Paste your Stripe publishable key below. For production, use pk_live_...
     let stripe = null;
     const STRIPE_PUBLISHABLE_KEY = 'pk_test_PASTE_YOUR_STRIPE_PUBLISHABLE_KEY_HERE';
+    
+    // Mapping of UI IDs to your real Stripe Price IDs
+    // REPLACE THESE WITH YOUR ACTUAL STRIPE PRICE IDs (from Stripe Dashboard → Products → Prices)
+    const STRIPE_PRICE_IDS = {
+        'pack-starter': 'price_1NV123abc456',    // Replace with your Starter Pack Price ID
+        'pack-daily': 'price_1NV123abc457',      // Replace with your Daily Booster Price ID
+        'pack-royal': 'price_1NV123abc458',      // Replace with your Royal Bundle Price ID
+        'pack-whale': 'price_1NV123abc459',      // Replace with your Whale Chest Price ID
+        'vip-vipclub': 'price_1NV123abc460'      // Replace with your VIP Club Price ID
+    };
+    
     try {
         if (typeof Stripe === 'function' && STRIPE_PUBLISHABLE_KEY && !STRIPE_PUBLISHABLE_KEY.includes('PASTE_')) {
             stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
@@ -2070,112 +2077,91 @@
         console.warn('Stripe not initialized. Add your publishable key to enable real payments.');
     }
 
-    // GitHub Pages note:
-    // - Real Stripe payments require a backend (or Supabase Edge Function) to create PaymentIntents/Checkout Sessions.
-    // - This UI keeps a demo fallback when Stripe/backend is not wired.
-
-    function startCheckout(type, id) {
-        gameState.checkout = { type, id };
-
-        const title = document.getElementById('checkoutTitle');
-        const nameEl = document.getElementById('checkoutItemName');
-        const descEl = document.getElementById('checkoutItemDesc');
-        const priceEl = document.getElementById('checkoutPrice');
-        const bonusBox = document.getElementById('checkoutBonusBox');
-        const bonusText = document.getElementById('checkoutBonusText');
-
-        bonusBox.classList.add('hidden');
-
-        if (type === 'pack') {
-            const pack = coinPacks[id];
-            nameEl.textContent = pack?.name || 'Coin Pack';
-            descEl.textContent = `${pack.coins.toLocaleString()} coins${pack.bonusCoins ? ` + ${pack.bonusCoins.toLocaleString()} bonus` : ''}`;
-            priceEl.textContent = '$' + (pack?.price ?? 0).toFixed(2);
-            title.textContent = '💳 Buy Coins';
-            if (pack?.bonusCoins) {
-                bonusBox.classList.remove('hidden');
-                bonusText.textContent = `Includes bonus: +${pack.bonusCoins.toLocaleString()} coins`;
-            }
-        } else if (type === 'vip') {
-            nameEl.textContent = 'VIP Club Subscription';
-            descEl.textContent = 'Monthly plan: 2x daily bonus, ad-free, VIP Lounge, faster regen, priority support.';
-            priceEl.textContent = '$9.99';
-            title.textContent = '👑 Join VIP Club';
-            bonusBox.classList.remove('hidden');
-            bonusText.textContent = 'VIP Welcome Gift: +5,000 coins';
-        } else if (type === 'item') {
-            const it = items[id];
-            nameEl.textContent = it?.name || 'Item';
-            descEl.textContent = it?.desc || '';
-            priceEl.textContent = '$' + (it?.price ?? 0).toFixed(2);
-            title.textContent = '🧾 Purchase';
-        }
-
-        saveState();
-        openModal('checkout');
-    }
-
-    async function processCheckout() {
-        const cn = document.getElementById('cardNumber').value.trim();
-        const ex = document.getElementById('cardExpiry').value.trim();
-        const cv = document.getElementById('cardCvc').value.trim();
-
-        if (!cn || !ex || !cv) {
-            showNotification('Please fill all card details', 'error');
+    // Start checkout process using Stripe Checkout Sessions via Supabase Edge Function
+    async function startCheckout(type, id) {
+        // Check if user is logged in
+        if (!gameState.session?.user) {
+            showNotification('Please login to make a purchase', 'error');
+            toggleAuthPanel();
             return;
         }
 
-        // Production wiring (recommended):
-        // 1) Create a Supabase Edge Function (or any backend) that creates a Stripe Checkout Session or PaymentIntent.
-        // 2) Call it from here with: type/id/user_id
-        // 3) Redirect to Stripe Checkout OR confirmCardPayment.
-        // 4) Use Stripe webhook to credit coins / activate VIP server-side.
-
-        // GitHub Pages: without a backend/edge function, we keep demo-mode simulation.
-        const backendReady = false; // set true once you wire an Edge Function endpoint
-
-        showNotification('Processing payment...', 'info');
-
-        if (backendReady && stripe) {
-            // Example (Stripe Checkout) pseudo-flow:
-            // const { data } = await supabaseClient.functions.invoke('create-checkout', { body: { type, id } });
-            // await stripe.redirectToCheckout({ sessionId: data.sessionId });
-            showNotification('Stripe backend not wired yet. Falling back to demo mode.', 'info');
+        // Get corresponding Stripe Price ID
+        const priceKey = `${type}-${id}`;
+        const priceId = STRIPE_PRICE_IDS[priceKey];
+        
+        if (!priceId || priceId.includes('PASTE')) {
+            showNotification('Stripe products not configured. Please check your Stripe Price IDs.', 'error');
+            // Fallback to demo mode for testing without Stripe
+            processCheckoutDemo(type, id);
+            return;
         }
 
-        setTimeout(() => {
-            const { type, id } = gameState.checkout || {};
-
-            if (type === 'pack') {
-                const pack = coinPacks[id];
-                if (!pack) {
-                    showNotification('Invalid pack.', 'error');
-                    return;
+        showNotification('Redirecting to secure checkout...', 'info');
+        
+        try {
+            // Call Supabase Edge Function to create checkout session
+            const { data, error } = await supabaseClient.functions.invoke('create-checkout-session', {
+                body: {
+                    priceId: priceId,
+                    userId: gameState.session.user.id,
+                    productType: type,
+                    successUrl: window.location.origin + window.location.pathname + '?success=1',
+                    cancelUrl: window.location.origin + window.location.pathname + '?cancel=1'
                 }
-                updateBalance(pack.coins + (pack.bonusCoins || 0));
-                showNotification(`Purchase successful: +${(pack.coins + (pack.bonusCoins || 0)).toLocaleString()} coins!`, 'success');
-                createConfetti();
+            });
+            
+            if (error) throw error;
+            
+            // Redirect to Stripe Checkout
+            if (data?.url) {
+                window.location.href = data.url;
             }
+        } catch (err) {
+            console.error('Checkout error:', err);
+            showNotification('Checkout failed. Falling back to demo mode.', 'error');
+            processCheckoutDemo(type, id);
+        }
+    }
+    
+    // Demo checkout for testing without Stripe
+    function processCheckoutDemo(type, id) {
+        let pack, item;
+        
+        if (type === 'pack') {
+            pack = coinPacks[id];
+            updateBalance(pack.coins + (pack.bonusCoins || 0));
+            showNotification(`Demo: Purchased ${pack.name} (+${(pack.coins + (pack.bonusCoins || 0)).toLocaleString()} coins)`, 'success');
+            createConfetti();
+        } else if (type === 'vip') {
+            activateVipClub();
+        } else if (type === 'item') {
+            item = items[id];
+            item.apply();
+            showNotification(`Demo: Purchased ${item.name}`, 'success');
+        }
+        
+        refreshVipClubUI();
+    }
 
-            if (type === 'vip') {
-                activateVipClub();
-            }
-
-            if (type === 'item') {
-                const it = items[id];
-                if (!it) {
-                    showNotification('Invalid item.', 'error');
-                    return;
-                }
-                it.apply();
-                showNotification(`Purchased: ${it.name}`, 'success');
-            }
-
-            gameState.checkout = { type:null, id:null };
-            saveState();
-            refreshVipClubUI();
-            closeModal('checkout');
-        }, 1200);
+    // Handle success/cancel from Stripe Checkout redirect
+    function handleStripeRedirect() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.get('success')) {
+            showNotification('Purchase successful! Your account has been credited.', 'success');
+            createConfetti();
+            
+            // Clear URL params
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        
+        if (urlParams.get('cancel')) {
+            showNotification('Checkout canceled. No charges were made.', 'info');
+            
+            // Clear URL params
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     }
 
     function activateVipClub() {
@@ -3942,6 +3928,9 @@
         refreshVipClubUI();
         updateDailyBonusUI();
 
+        // Handle Stripe checkout redirect (success/cancel)
+        handleStripeRedirect();
+        
         // Capture referral attribution early
         checkForReferral();
 
@@ -3988,7 +3977,12 @@
         console.log('🎰 Royal Fortune Casino initialized!');
     }
 
-    init();
+    // Run initialization on DOM load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 </script>
 
 </body>
