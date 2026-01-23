@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Add these meta tags for compliance -->
+<meta name="description" content="Royal Fortune Casino - Premium social casino experience for entertainment">
+<meta name="keywords" content="social casino, free slots, entertainment, virtual currency">
+<meta name="author" content="Royal Fortune Casino">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Royal Fortune Casino - Premium Gaming Experience</title>
@@ -1491,7 +1495,21 @@
             </div>
         </div>
     </section>
-
+<footer class="bg-[#1a0a2e]/95 border-t border-[#d4af37]/30 mt-16 py-8">
+    <div class="container mx-auto px-4 text-center">
+        <div class="flex justify-center flex-wrap gap-6 text-sm mb-4">
+            <a href="legal-pages.html#terms" class="text-gray-400 hover:text-[#d4af37] transition">Terms of Service</a>
+            <a href="legal-pages.html#privacy" class="text-gray-400 hover:text-[#d4af37] transition">Privacy Policy</a>
+            <a href="legal-pages.html#disclaimer" class="text-gray-400 hover:text-[#d4af37] transition">Virtual Currency</a>
+            <a href="legal-pages.html#age" class="text-gray-400 hover:text-[#d4af37] transition">Age Gate</a>
+        </div>
+        <p class="text-xs text-gray-500">
+            © 2024 Royal Fortune Casino. All rights reserved. | 
+            <span class="text-[#d4af37] font-bold">For entertainment purposes only</span>
+        </p>
+    </div>
+</footer>
+    
 </main>
 
 <!-- Checkout Modal -->
@@ -3987,6 +4005,48 @@
         init();
     }
 </script>
+<!-- Age Gate Modal -->
+    // Age Gate Functions
+function checkAgeGate() {
+    const ageConfirmed = localStorage.getItem('ageGateConfirmed');
+    if (!ageConfirmed) {
+        document.getElementById('ageGateModal').classList.remove('hidden');
+    }
+}
 
+function confirmAgeGate() {
+    localStorage.setItem('ageGateConfirmed', 'true');
+    document.getElementById('ageGateModal').classList.add('hidden');
+}
+
+function exitCasino() {
+    window.location.href = 'https://google.com';
+}
+
+// Call on page load
+window.addEventListener('load', () => {
+    checkAgeGate();
+    // ... rest of your init code
+});
+<div id="ageGateModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+    <div class="bg-gradient-to-b from-[#1a0a2e] to-[#2d1a4a] border-4 border-[#d4af37] rounded-2xl p-8 max-w-md mx-4 text-center">
+        <div class="text-6xl mb-4">🔞</div>
+        <h2 class="text-2xl font-bold gold-gradient mb-4">Age Verification Required</h2>
+        <p class="text-gray-300 mb-6">
+            You must be at least <strong>18 years of age</strong> (or 21 in some jurisdictions) 
+            to use Royal Fortune Casino.
+        </p>
+        <p class="text-sm text-gray-400 mb-6">
+            By clicking "I Confirm", you acknowledge that this app is for entertainment purposes only 
+            and virtual currency has no cash value.
+        </p>
+        <button onclick="confirmAgeGate()" class="btn-gold px-8 py-3 rounded-full text-lg w-full mb-3">
+            I Confirm I Am 18+
+        </button>
+        <button onclick="exitCasino()" class="bg-gray-700 hover:bg-gray-600 px-8 py-3 rounded-full w-full">
+            Exit
+        </button>
+    </div>
+</div>
 </body>
 </html>
