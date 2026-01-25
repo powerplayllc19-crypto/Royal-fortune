@@ -33,7 +33,8 @@
             background-clip: text;
         }
 
-        .card-glow {
+        .card-glow 
+        {
             box-shadow: 0 0 30px rgba(212, 175, 55, 0.3), inset 0 0 30px rgba(212, 175, 55, 0.1);
         }
 
@@ -1580,12 +1581,8 @@
 </div>
 
 <script>
-    // ==================== SUPABASE (GitHub Pages compatible) ====================
-    // Replace these two values with your project settings:
-    // Supabase Dashboard → Project Settings → API
+
     // ==================== SUPABASE CONFIG (GitHub Pages friendly) ====================
-    // 1) Supabase Dashboard → Project Settings → API
-    // 2) Paste values below (anon key is public by design; protect data with RLS)
     const SUPABASE_URL = 'https://euvrytzzxeaivpwijekf.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1dnJ5dHp6eGVhaXZwd2lqZWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjYxNjAsImV4cCI6MjA4NDYwMjE2MH0.r5iflXXtIfMNrxHhmze59GR2wEzEEnTH91bdN42FXuA';
 
@@ -2059,8 +2056,6 @@
     let stripe = null;
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51SmLkWAjI9V6KtxTnZTObyFayrvhXhjT4YhOoOZyUGMjsIaEvFPaefgVJsrZV8GBjl25utF8UfdAuhcTxXKoM2s600yCPER9EH';
     
-    // Mapping of UI IDs to your real Stripe Price IDs
-    // REPLACE THESE WITH YOUR ACTUAL STRIPE PRICE IDs (from Stripe Dashboard → Products → Prices)
     const STRIPE_PRICE_IDS = {
         'pack-starter': 'price_1Sr7DdAjI9V6KtxTRotNZXPA', 
         'pack-daily': 'price_1Sr7BzAjI9V6KtxTVkiE428Z',   
