@@ -1,319 +1,552 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Royal Fortune Casino - Premium Gaming Experience</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://js.stripe.com/v3/"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <style>
-        /* ────────────────────────────────────────────────
-           Your existing CSS remains unchanged
-           (omitted here for brevity – keep your full <style> block)
-        ──────────────────────────────────────────────── */
-    </style>
-</head>
-<body class="text-white">
 
-<!-- Your full HTML structure remains the same -->
-<!-- (header, nav, sections, modals, etc.)     -->
-<!-- Only the <script> at the bottom is replaced -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Royal Fortune Casino</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Stripe -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+background:#0c0c1d;
+color:#fff;
+font-family:Roboto;
+}
+
+.gold{
+color:#d4af37;
+}
+
+.card{
+background:#14142b;
+border:1px solid #d4af37;
+border-radius:16px;
+padding:20px;
+}
+
+.btn{
+background:linear-gradient(45deg,#d4af37,#f4e4a6);
+color:#000;
+font-weight:700;
+padding:10px 18px;
+border-radius:10px;
+transition:.2s;
+}
+
+.btn:hover{
+transform:scale(1.05);
+}
+
+</style>
+
+</head>
+
+
+<body class="p-4 max-w-xl mx-auto">
+
+
+<!-- ================= HEADER ================= -->
+
+<header class="flex justify-between items-center mb-6">
+
+<h1 class="text-2xl gold font-bold">
+👑 Royal Fortune
+</h1>
+
+<div class="flex gap-3 items-center">
+
+<div class="card text-sm">
+💰 <span id="balance">0</span>
+</div>
+
+<button id="authBtn" class="btn">
+Sign In
+</button>
+
+</div>
+
+</header>
+
+
+<!-- ================= DAILY ================= -->
+
+<div id="dailyBox" class="card mb-6 hidden text-center">
+
+<h3 class="gold mb-2">🎁 Daily Bonus</h3>
+
+<button onclick="claimDaily()" class="btn w-full">
+Claim +500
+</button>
+
+</div>
+
+
+<!-- ================= FEED ================= -->
+
+<div class="card mb-6">
+
+<h3 class="gold mb-2">🔥 Live Wins</h3>
+
+<div id="feed"
+class="text-xs space-y-1 h-24 overflow-y-auto"></div>
+
+</div>
+
+
+<!-- ================= GAME ================= -->
+
+<div class="card mb-6 text-center">
+
+<h2 class="gold mb-4">🎰 Royal Slots</h2>
+
+<div id="slots" class="text-5xl mb-4">
+💎 🍒 ⭐
+</div>
+
+<div class="mb-2">
+Bet: $<span id="bet">10</span>
+</div>
+
+<div class="flex justify-center gap-3 mb-4">
+
+<button onclick="changeBet(-5)" class="btn">-</button>
+<button onclick="changeBet(5)" class="btn">+</button>
+
+</div>
+
+<button onclick="spin()" class="btn w-full text-xl">
+SPIN
+</button>
+
+</div>
+
+
+<!-- ================= STORE ================= -->
+
+<div class="card mb-6">
+
+<h3 class="gold mb-3">💳 Coin Store</h3>
+
+<div class="grid grid-cols-2 gap-3 text-sm">
+
+<button onclick="buyPack('pack-starter')" class="btn">
+Starter<br>$0.99
+</button>
+
+<button onclick="buyPack('pack-daily')" class="btn">
+Daily<br>$2.99
+</button>
+
+<button onclick="buyPack('pack-royal')" class="btn">
+Royal<br>$6.99
+</button>
+
+<button onclick="buyPack('pack-mega')" class="btn">
+Mega<br>$14.99
+</button>
+
+<button onclick="buyPack('pack-whale')" class="btn col-span-2">
+Whale Pack<br>$49.99
+</button>
+
+</div>
+
+</div>
+
+
+<!-- ================= PROFILE ================= -->
+
+<div class="card mb-6">
+
+<h3 class="gold mb-2">📊 Profile</h3>
+
+<div class="text-sm space-y-1">
+
+<div>Level: <span id="level">0</span></div>
+<div>XP: <span id="xp">0</span></div>
+<div>Wagered: $<span id="wagered">0</span></div>
+
+</div>
+
+</div>
+
+
+<!-- ================= FOOTER ================= -->
+
+<footer class="text-xs text-gray-400 text-center">
+
+<p>Entertainment only. No real gambling.</p>
+
+</footer>
+
+
+
+<!-- ========================================================= -->
+<!-- ========================= SCRIPT ======================== -->
+<!-- ========================================================= -->
 
 <script>
-// ────────────────────────────────────────────────
-//  PRODUCTION VERSION – Supabase + Stripe Live
-//  No demo fallbacks, no localStorage primacy
-// ────────────────────────────────────────────────
 
-const SUPABASE_URL = 'https://euvrytzzxeaivpwijekf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1dnJ5dHp6eGVhaXZwd2lqZWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjYxNjAsImV4cCI6MjA4NDYwMjE2MH0.r5iflXXtIfMNrxHhmze59GR2wEzEEnTH91bdN42FXuA';
+/* ================= CONFIG ================= */
 
-const stripe = Stripe('pk_live_51SmLkWAjI9V6KtxTnZTObyFayrvhXhjT4YhOoOZyUGMjsIaEvFPaefgVJsrZV8GBjl25utF8UfdAuhcTxXKoM2s600yCPER9EH');
+const SUPABASE_URL =
+'https://euvrytzzxeaivpwijekf.supabase.co';
+
+const SUPABASE_ANON_KEY =
+'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1dnJ5dHp6eGVhaXZwd2lqZWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMjYxNjAsImV4cCI6MjA4NDYwMjE2MH0.r5iflXXtIfMNrxHhmze59GR2wEzEEnTH91bdN42FXuA';
+
+const stripe =
+Stripe('pk_live_51SmLkWAjI9V6KtxTnZTObyFayrvhXhjT4YhOoOZyUGMjsIaEvFPaefgVJsrZV8GBjl25utF8UfdAuhcTxXKoM2s600yCPER9EH');
 
 const STRIPE_PRICE_IDS = {
-    'pack-starter':     'price_1Sr7DdAjI9V6KtxTRotNZXPA',
-    'pack-daily':       'price_1Sr7BzAjI9V6KtxTVkiE428Z',
-    'pack-royal':       'price_1Sr7oCAjI9V6KtxTZhdMbBtL',
-    'pack-mega':        'price_1SvPNwAjI9V6KtxTpZpiNwexx', 
-    'pack-whale':       'prod_TolNxjN3JQiYs3',
-    'vip-vipclub':      'price_1Sr797AjI9V6KtxTLd6rjmW7',
-    'item-vipxp':       'prod_TolTgDxsCu6SQ3',     // ← update
-    'item-autodauber':  'prod_TolVGyaKU7vqTH'      // ← update
+
+'pack-starter':'price_1Sr7DdAjI9V6KtxTRotNZXPA',
+'pack-daily':'price_1Sr7BzAjI9V6KtxTVkiE428Z',
+'pack-royal':'price_1Sr7oCAjI9V6KtxTZhdMbBtL',
+'pack-mega':'price_1SvPNwAjI9V6KtxTpZpiNwexx',
+
+'pack-whale':'prod_TolNxjN3JQiYs3',
+
+'vip-vipclub':'price_1Sr797AjI9V6KtxTLd6rjmW7',
+
+'item-vipxp':'prod_TolTgDxsCu6SQ3',
+'item-autodauber':'prod_TolVGyaKU7vqTH'
+
 };
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-    }
+
+/* ================= INIT ================= */
+
+const supabase =
+supabasejs.createClient(
+SUPABASE_URL,
+SUPABASE_ANON_KEY
+);
+
+
+let state = {
+
+user:null,
+balance:0,
+xp:0,
+wagered:0,
+bet:10
+
+};
+
+
+/* ================= AUTH ================= */
+
+async function initAuth(){
+
+const {data:{session}} =
+await supabase.auth.getSession();
+
+if(session){
+
+state.user = session.user;
+
+authBtn.textContent = "Logout";
+
+loadProfile();
+
+}
+
+}
+
+
+authBtn.onclick = async()=>{
+
+if(state.user){
+
+await supabase.auth.signOut();
+
+location.reload();
+
+}else{
+
+login();
+
+}
+
+};
+
+
+async function login(){
+
+const email = prompt("Enter email:");
+
+if(!email) return;
+
+await supabase.auth.signInWithOtp({
+
+email,
+options:{
+emailRedirectTo:location.href
+}
+
 });
 
-// ────────────────────────────────────────────────
-//  Game State (optimistic UI – truth comes from Supabase)
-// ────────────────────────────────────────────────
-let gameState = {
-    balance: 1000.00,
-    slotBet: 10,
-    nmSlotBet: 5,
-    vipSlotBet: 50,
-    blackjackBet: 25,
-    pokerBet: 5,
-    rouletteChip: 10,
-    rouletteBets: [],
-    freeSpins: 3,
-    dailyStreak: 1,
-    lastClaim: null,
-    vipClub: { active: false, expiresAt: 0, startedAt: 0, adFree: false },
-    vipLevel: 0,
-    vipXP: 0,
-    totalWagered: 0,
-    purchases: { bingoAutoDauberUntil: 0 },
-    checkout: { type: null, id: null },
-    session: null,
-    currentUser: null,
-    lastRegenAt: Date.now(),
-    pendingRef: null
-};
+alert("Check your email");
 
-// ────────────────────────────────────────────────
-//  Core Helpers
-// ────────────────────────────────────────────────
-function updateBalance(delta) {
-    gameState.balance = Math.max(0, gameState.balance + Number(delta));
-    document.getElementById('balance').textContent = gameState.balance.toFixed(2);
-    queueProfileSync();
 }
 
-function addWager(amount) {
-    gameState.totalWagered += Number(amount);
-    gameState.vipXP += Number(amount);
-    updateVipUI();
-    queueProfileSync();
+
+/* ================= PROFILE ================= */
+
+async function loadProfile(){
+
+let {data} =
+await supabase
+.from("users")
+.select("*")
+.eq("id",state.user.id)
+.single();
+
+
+if(!data){
+
+await supabase.from("users").insert({
+
+id:state.user.id,
+coins:1000,
+xp:0,
+wagered:0,
+last_daily:null
+
+});
+
+return loadProfile();
+
 }
 
-let syncTimeout = null;
-function queueProfileSync() {
-    clearTimeout(syncTimeout);
-    syncTimeout = setTimeout(syncProfileToSupabase, 1200);
+
+state.balance = data.coins;
+state.xp = data.xp;
+state.wagered = data.wagered;
+
+
+updateUI();
+checkDaily();
+
 }
 
-async function syncProfileToSupabase() {
-    if (!gameState.session?.user?.id) return;
 
-    const uid = gameState.session.user.id;
-    const payload = {
-        id: uid,
-        username: gameState.currentUser?.username || null,
-        email: gameState.session.user.email || null,
-        coins: Math.floor(gameState.balance),
-        vip_level: gameState.vipLevel,
-        vip_xp: Math.floor(gameState.vipXP),
-        total_wagered: Math.floor(gameState.totalWagered),
-        vip_active: isVipClubActive(),
-        vip_expires_at: gameState.vipClub.expiresAt ? new Date(gameState.vipClub.expiresAt).toISOString() : null,
-        ad_free: !!gameState.vipClub.adFree,
-        last_claim: gameState.lastClaim || null,
-        daily_streak: gameState.dailyStreak || 1,
-        free_spins: gameState.freeSpins || 0,
-        updated_at: new Date().toISOString()
-    };
+/* ================= UI ================= */
 
-    const { error } = await supabase
-        .from('profiles')
-        .upsert(payload, { onConflict: 'id' });
+function updateUI(){
 
-    if (error) console.warn('Profile sync failed:', error.message);
+balance.textContent =
+state.balance.toLocaleString();
+
+xp.textContent = state.xp;
+
+wagered.textContent =
+state.wagered.toLocaleString();
+
+level.textContent =
+Math.floor(state.xp/1000);
+
+bet.textContent = state.bet;
+
 }
 
-// ────────────────────────────────────────────────
-//  Auth & Profile Loading
-// ────────────────────────────────────────────────
-async function initAuthAndProfile() {
-    const { data: { session } } = await supabase.auth.getSession();
-    gameState.session = session;
 
-    supabase.auth.onAuthStateChange(async (_, newSession) => {
-        gameState.session = newSession;
-        if (newSession?.user?.id) {
-            await loadProfileFromSupabase(newSession.user.id);
-            await applyReferralIfEligible();
-        } else {
-            gameState.currentUser = null;
-            updateAuthUI();
-            refreshVipClubUI();
-        }
-    });
+/* ================= DAILY ================= */
 
-    if (session?.user?.id) {
-        await loadProfileFromSupabase(session.user.id);
-        await applyReferralIfEligible();
-    }
+async function checkDaily(){
+
+const {data} =
+await supabase
+.from("users")
+.select("last_daily")
+.eq("id",state.user.id)
+.single();
+
+
+if(
+!data.last_daily ||
+new Date(data.last_daily)
+.toDateString() !==
+new Date().toDateString()
+){
+
+dailyBox.classList.remove("hidden");
+
 }
 
-async function loadProfileFromSupabase(uid) {
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', uid)
-        .single();
-
-    if (error || !data) {
-        console.warn('Could not load profile:', error?.message);
-        return;
-    }
-
-    // Server → client state
-    gameState.balance       = Number(data.coins ?? 1000);
-    gameState.vipLevel      = data.vip_level ?? 0;
-    gameState.vipXP         = data.vip_xp ?? 0;
-    gameState.totalWagered  = data.total_wagered ?? 0;
-    gameState.dailyStreak   = data.daily_streak ?? 1;
-    gameState.lastClaim     = data.last_claim ?? null;
-    gameState.freeSpins     = data.free_spins ?? 3;
-
-    if (data.vip_active && data.vip_expires_at) {
-        const exp = new Date(data.vip_expires_at).getTime();
-        gameState.vipClub.active   = Date.now() < exp;
-        gameState.vipClub.expiresAt = exp;
-        gameState.vipClub.adFree   = !!data.ad_free;
-    }
-
-    if (data.username) {
-        gameState.currentUser = { username: data.username, email: data.email || null };
-    }
-
-    document.getElementById('balance').textContent = gameState.balance.toFixed(2);
-    updateVipUI();
-    updateAuthUI();
-    refreshVipClubUI();
-    updateDailyBonusUI();
 }
 
-// ────────────────────────────────────────────────
-//  Stripe Checkout – Live only
-// ────────────────────────────────────────────────
-async function startCheckout(type, id) {
-    if (!gameState.session?.user?.id) {
-        showNotification('Please sign in to make a purchase', 'error');
-        toggleAuthPanel();
-        return;
-    }
 
-    const priceKey = `${type}-${id}`;
-    const priceId = STRIPE_PRICE_IDS[priceKey];
+async function claimDaily(){
 
-    if (!priceId || !priceId.startsWith('price_')) {
-        showNotification('Product configuration error. Contact support.', 'error');
-        return;
-    }
+await supabase.rpc("claim_daily");
 
-    try {
-        const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-            body: {
-                priceId,
-                userId: gameState.session.user.id,
-                productType: type,
-                successUrl: window.location.origin + window.location.pathname + '?success=1',
-                cancelUrl:  window.location.origin + window.location.pathname + '?cancel=1'
-            }
-        });
+dailyBox.classList.add("hidden");
 
-        if (error) throw error;
-        if (data?.url) {
-            window.location.href = data.url;
-        } else {
-            throw new Error('No checkout URL received');
-        }
-    } catch (err) {
-        console.error('Checkout initiation failed:', err);
-        showNotification('Unable to start checkout. Please try again later.', 'error');
-    }
+loadProfile();
+
+notify("Daily bonus claimed!");
+
 }
 
-// ────────────────────────────────────────────────
-//  Daily Bonus – optimistic + server sync
-// ────────────────────────────────────────────────
-async function claimDailyBonus() {
-    const today = new Date().toDateString();
-    if (gameState.lastClaim === today) {
-        showNotification('You have already claimed today’s bonus.', 'info');
-        return;
-    }
 
-    const multiplier = isVipClubActive() ? 2 : 1;
-    const streak = gameState.dailyStreak || 1;
-    const bonus = 500 * streak * multiplier;
+/* ================= GAME ================= */
 
-    // Optimistic UI update
-    updateBalance(bonus);
-    gameState.lastClaim = today;
-    gameState.dailyStreak = (gameState.lastClaim === new Date(Date.now() - 86400000).toDateString())
-        ? streak + 1
-        : 1;
+function changeBet(v){
 
-    showNotification(`Daily bonus claimed: +${bonus.toLocaleString()} coins (Day ${gameState.dailyStreak})`, 'success');
+state.bet =
+Math.max(5,
+Math.min(500,state.bet+v));
 
-    // Persist to Supabase
-    if (gameState.session?.user?.id) {
-        await supabase
-            .from('profiles')
-            .update({
-                last_claim: today,
-                daily_streak: gameState.dailyStreak,
-                coins: Math.floor(gameState.balance)
-            })
-            .eq('id', gameState.session.user.id);
-    }
+updateUI();
 
-    updateDailyBonusUI();
 }
 
-// ────────────────────────────────────────────────
-//  Initialization
-// ────────────────────────────────────────────────
-async function initializeApp() {
-    // Render static elements
-    createFortuneWheel();
-    newBingoCard();
 
-    // Load auth & profile from Supabase
-    await initAuthAndProfile();
+async function spin(){
 
-    // Handle Stripe redirect
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('success')) {
-        showNotification('Thank you! Your purchase has been processed. Your balance will update shortly.', 'success');
-        if (gameState.session?.user?.id) {
-            await loadProfileFromSupabase(gameState.session.user.id);
-        }
-        window.history.replaceState({}, '', window.location.pathname);
-    }
-    if (params.get('cancel')) {
-        showNotification('Checkout was canceled.', 'info');
-        window.history.replaceState({}, '', window.location.pathname);
-    }
+if(!state.user)
+return notify("Login first");
 
-    // Start background ticks
-    setInterval(coinRegenTick, 1500);
-    coinRegenTick();
 
-    // Initial UI updates
-    updateVipUI();
-    updateAuthUI();
-    refreshVipClubUI();
-    updateDailyBonusUI();
+const res = await fetch(
 
-    console.log('Royal Fortune Casino initialized – live mode');
+`${SUPABASE_URL}/functions/v1/spin`,
+
+{
+method:"POST",
+headers:{
+Authorization:
+`Bearer ${SUPABASE_ANON_KEY}`,
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+bet:state.bet
+})
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
+);
+
+
+const data = await res.json();
+
+
+if(!res.ok)
+return notify(data.error);
+
+
+slots.textContent =
+data.symbols.join(" ");
+
+
+state.balance = data.balance;
+state.xp = data.xp;
+state.wagered = data.wagered;
+
+
+if(data.win>0){
+
+notify("WIN +$"+data.win);
+
+pushFeed(data.win);
+
 }
+
+
+updateUI();
+
+}
+
+
+/* ================= FEED ================= */
+
+function pushFeed(amount){
+
+const el =
+document.createElement("div");
+
+el.textContent =
+`🎉 Player won $${amount}`;
+
+feed.prepend(el);
+
+}
+
+
+/* ================= STORE ================= */
+
+async function buyPack(pack){
+
+if(!state.user)
+return notify("Login first");
+
+
+const priceId =
+STRIPE_PRICE_IDS[pack];
+
+if(!priceId)
+return notify("Invalid pack");
+
+
+const res =
+await fetch(
+`${SUPABASE_URL}/functions/v1/checkout`,
+{
+method:"POST",
+headers:{
+Authorization:
+`Bearer ${SUPABASE_ANON_KEY}`,
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+priceId
+})
+}
+);
+
+
+const data = await res.json();
+
+
+if(!res.ok)
+return notify(data.error);
+
+
+stripe.redirectToCheckout({
+sessionId:data.sessionId
+});
+
+}
+
+
+/* ================= UTIL ================= */
+
+function notify(msg){
+
+alert(msg);
+
+}
+
+
+/* ================= START ================= */
+
+initAuth();
+
 </script>
 
 </body>
